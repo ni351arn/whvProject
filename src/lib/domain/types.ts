@@ -11,8 +11,8 @@ export enum JobStatus {
   Rejected = "REJECTED",
 }
 
-export type ContactChannel = "WHATSAPP" | "CALL" | "EMAIL" | "IN_PERSON" | "OTHER";
-export type InteractionType = "MSG" | "CALL" | "EMAIL" | "IN_PERSON" | "OTHER";
+export type ContactChannel = "WHATSAPP" | "CALL" | "EMAIL" | "IN_PERSON" | "LINKEDIN" | "OTHER";
+export type InteractionType = "MSG" | "CALL" | "EMAIL" | "IN_PERSON" | "LINKEDIN" | "OTHER";
 
 export interface Job {
   id: JobId;
@@ -45,5 +45,15 @@ export interface Interaction {
   type: InteractionType;
   outcome?: string;
   notes?: string;
+  createdAt: string;
+}
+
+export type TemplateId = string;
+
+export interface Template {
+  id: TemplateId;
+  title: string;
+  channel: ContactChannel;
+  body: string; // content with {{placeholders}}
   createdAt: string;
 }

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import { Job, JobStatus } from "@/lib/domain/types";
+import { Job, JobStatus, Template } from "@/lib/domain/types";
+import { generateId } from "@/lib/utils";
 
 function isoNow() {
   return new Date().toISOString();
@@ -14,9 +15,39 @@ function isoDatePlusDays(days: number) {
 export async function seedDemoJobs() {
   const now = isoNow();
 
+  // 1. Seed Templates (if empty)
+  const templateCount = await db.templates.count();
+  if (templateCount === 0) {
+    const templates: Template[] = [
+      {
+        id: generateId(),
+        title: "Initial Application (Email)",
+        channel: "EMAIL",
+        body: "Hi,\n\nI am writing to apply for the {{role}} position at {{company}}. I have experience in similar roles and am available to start immediately.\n\nMy phone number is: 04XX XXX XXX.\n\nBest,\n{{name}}",
+        createdAt: now,
+      },
+      {
+        id: generateId(),
+        title: "Follow Up (WhatsApp)",
+        channel: "WHATSAPP",
+        body: "Hi {{name}}, just checking in regarding my application for the {{role}} role at {{company}}. I'm still very interested! Thanks.",
+        createdAt: now,
+      },
+      {
+        id: generateId(),
+        title: "Availability Update",
+        channel: "EMAIL",
+        body: "Hi {{name}},\n\nJust wanted to let you know that I am now available 7 days a week for the {{role}} position.\n\nBest regards,",
+        createdAt: now,
+      }
+    ];
+    await db.templates.bulkAdd(templates);
+  }
+
+  // 2. Seed Jobs
   const demo: Job[] = [
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       company: "Sandy Beach Gardens",
       role: "Gardener (casual)",
       location: "Sandy Beach, NSW",
@@ -29,7 +60,7 @@ export async function seedDemoJobs() {
       updatedAt: now,
     },
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       company: "Byron Hostel",
       role: "Reception / Cleaner",
       location: "Byron Bay, NSW",
@@ -41,7 +72,7 @@ export async function seedDemoJobs() {
       updatedAt: now,
     },
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       company: "Cafe Corner",
       role: "Kitchen hand",
       location: "Coffs Harbour, NSW",
@@ -53,7 +84,7 @@ export async function seedDemoJobs() {
       updatedAt: now,
     },
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       company: "Coastal Construction",
       role: "Labourer",
       location: "Coffs Harbour, NSW",
@@ -65,7 +96,7 @@ export async function seedDemoJobs() {
       updatedAt: now,
     },
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       company: "Farm Connect",
       role: "Picking / Packing",
       location: "Bundaberg, QLD",
@@ -78,4 +109,5 @@ export async function seedDemoJobs() {
   ];
 
   await db.jobs.bulkAdd(demo);
+  alert("Added demo jobs & templates!");
 }
