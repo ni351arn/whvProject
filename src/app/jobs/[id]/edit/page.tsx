@@ -1,38 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Job, JobStatus } from "@/lib/domain/types";
-import { generateId } from "@/lib/utils";
 
 function isoNow() {
   return new Date().toISOString();
 }
 
-function addDays(days: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
-}
-
-export default function NewJobPage() {
+export default function EditJobPage() {
+  const { id } = useParams() as { id: string };
   const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [job, setJob] = useState<Job | null>(null);
+
+  // Form state
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<JobStatus>(JobStatus.ToApply);
   const [nextFollowUpDate, setNextFollowUpDate] = useState<string>("");
-  const [tags, setTags] = useState<string>(""); // comma separated
+  const [tags, setTags] = useState<string>(""); 
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    db.jobs.get(id).then((j) => {
+      if (j) {
+        setJob(j);
+        setCompany(j.company);
+        setRole(j.role);
+        setLocation(j.location);
+        setStatus(j.status);
+        setNextFollowUpDate(j.nextFollowUpDate || "");
+        setTags(j.tags ? j.tags.join(", ") : "");
+        setNotes(j.notes || "");
+      }
+      setLoading(false);
+    });
+  }, [id]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!job) return;
 
     const now = isoNow();
-    const job: Job = {
-      id: generateId(),
+    const updates: Partial<Job> = {
       company: company.trim(),
       role: role.trim(),
       location: location.trim(),
@@ -43,24 +58,25 @@ export default function NewJobPage() {
         .map((t) => t.trim())
         .filter(Boolean),
       notes: notes.trim() || undefined,
-      createdAt: now,
       updatedAt: now,
     };
 
-    if (!job.company || !job.role || !job.location) {
+    if (!updates.company || !updates.role || !updates.location) {
       alert("Please fill company, role and location.");
       return;
     }
 
-    await db.jobs.add(job);
-    router.push("/jobs");
+    await db.jobs.update(id, updates);
+    router.push(`/jobs/${id}`);
   }
+
+  if (loading) return <div className="p-8">Loading...</div>;
+  if (!job) return <div className="p-8">Job not found.</div>;
 
   return (
     <main className="mx-auto max-w-3xl p-4">
       <header className="mb-4">
-        <h1 className="text-2xl font-semibold">New job</h1>
-        <p className="text-sm opacity-70">Add an application in 30 seconds.</p>
+        <h1 className="text-2xl font-semibold">Edit Job</h1>
       </header>
 
       <form onSubmit={onSubmit} className="space-y-4">
@@ -71,7 +87,6 @@ export default function NewJobPage() {
               className="w-full rounded-xl border px-3 py-2"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
-              placeholder="e.g. Byron Hostel"
             />
           </div>
 
@@ -81,7 +96,6 @@ export default function NewJobPage() {
               className="w-full rounded-xl border px-3 py-2"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              placeholder="e.g. Cleaner / Reception"
             />
           </div>
 
@@ -91,14 +105,13 @@ export default function NewJobPage() {
               className="w-full rounded-xl border px-3 py-2"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="e.g. Byron Bay, NSW"
             />
           </div>
 
           <div className="space-y-1">
             <label className="text-sm font-medium">Status</label>
             <select
-              className="w-full rounded-xl border px-3 py-3"
+              className="w-full rounded-xl border px-3 py-2"
               value={status}
               onChange={(e) => setStatus(e.target.value as JobStatus)}
             >
@@ -112,30 +125,11 @@ export default function NewJobPage() {
 
           <div className="space-y-1 sm:col-span-2">
             <label className="text-sm font-medium">Next follow-up</label>
-            <div className="flex gap-2 mb-2">
-              <button
-                type="button"
-                onClick={() => setNextFollowUpDate(addDays(3))}
-                className="rounded-xl border px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                +3 Days
-              </button>
-              <button
-                type="button"
-                onClick={() => setNextFollowUpDate(addDays(7))}
-                className="rounded-xl border px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                +1 Week
-              </button>
-            </div>
             <input
               type="date"
-              className="w-full h-12 rounded-xl border px-4 text-lg shadow-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+              className="w-full rounded-xl border px-3 py-2"
               value={nextFollowUpDate}
-              onChange={(e) => {
-                setNextFollowUpDate(e.target.value);
-                (e.target as HTMLInputElement).blur();
-              }}
+              onChange={(e) => setNextFollowUpDate(e.target.value)}
             />
           </div>
 
@@ -145,7 +139,6 @@ export default function NewJobPage() {
               className="w-full rounded-xl border px-3 py-2"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="e.g. hostel, gardening, cash"
             />
           </div>
 
@@ -156,7 +149,6 @@ export default function NewJobPage() {
               rows={5}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anything important…"
             />
           </div>
         </div>
@@ -166,10 +158,10 @@ export default function NewJobPage() {
             type="submit"
             className="rounded-xl bg-black px-4 py-2 text-sm text-white"
           >
-            Save
+            Save Changes
           </button>
           <Link
-            href="/jobs"
+            href={`/jobs/${id}`}
             className="rounded-xl border px-4 py-2 text-sm"
           >
             Cancel
