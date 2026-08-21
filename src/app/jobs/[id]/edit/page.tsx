@@ -156,7 +156,7 @@ export default function EditJobPage() {
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded-xl bg-black px-4 py-2 text-sm text-white"
+            className="rounded-xl border px-4 py-2 text-sm"
           >
             Save Changes
           </button>
